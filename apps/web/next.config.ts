@@ -21,7 +21,19 @@ const nextConfig: NextConfig = {
    * domains, e.g. *.vercel.app and *.up.railway.app.
    */
   async rewrites() {
-    const target = process.env.API_PROXY_TARGET?.replace(/\/+$/, "");
+    const target = process.env.API_PROXY_TARGET?.trim().replace(/\/+$/, "");
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim() ?? "";
+    // A relative API URL only works with the proxy. Fail the build loudly
+    // instead of shipping a site where every /api call is a 404.
+    if (apiUrl.startsWith("/") && !target) {
+      throw new Error(
+        `NEXT_PUBLIC_API_URL is "${apiUrl}" but API_PROXY_TARGET is not set. ` +
+          "Set API_PROXY_TARGET to the API's URL (e.g. https://your-api.up.railway.app) and rebuild.",
+      );
+    }
+    if (target && !/^https?:\/\//.test(target)) {
+      throw new Error(`API_PROXY_TARGET must start with https:// (got "${target}")`);
+    }
     return target ? [{ source: "/api/:path*", destination: `${target}/:path*` }] : [];
   },
   async redirects() {
