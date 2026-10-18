@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Appearance" };
 
 export default function AppearancePage() {
   return (
-    <main className="mx-auto grid w-full max-w-4xl gap-8 p-4 sm:p-6 lg:p-8">
+    <div className="mx-auto grid w-full max-w-4xl gap-8 p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Appearance"
         description="Theme and accent are saved on this device. Boards can also carry their own accent."
@@ -27,7 +27,7 @@ export default function AppearancePage() {
       <SettingsSection title="Preview" description="Live components using the current tokens.">
         <DesignPreview />
       </SettingsSection>
-    </main>
+    </div>
   );
 }
 

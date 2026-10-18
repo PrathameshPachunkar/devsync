@@ -3,16 +3,17 @@ import Link from "next/link";
 
 import { GitHubIcon } from "@/components/icons/github-icon";
 import { Badge } from "@/components/ui/badge";
-import { accentScopeProps } from "@/lib/theme/accents";
+import { accentScopeProps, parseAccentSetting } from "@/lib/theme/accents";
 
-import { BOARD_ROLE_LABELS, type BoardSummary } from "../types";
+import { BOARD_ROLE_LABELS, type BoardSummaryDto } from "@devsync/shared";
 
 /** Board tile. It wears the board's own accent via scoped CSS variables. */
-export function BoardCard({ board }: { board: BoardSummary }) {
+export function BoardCard({ board }: { board: BoardSummaryDto }) {
+  const accent = parseAccentSetting(board.accent);
   return (
     <Link
       href={`/boards/${board.id}`}
-      {...accentScopeProps(board.accent)}
+      {...(accent ? accentScopeProps(accent) : {})}
       className="group relative flex flex-col gap-4 overflow-hidden rounded-xl border bg-card p-5 text-card-foreground transition-[border-color,box-shadow] outline-none hover:border-primary/50 hover:shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-primary" />
@@ -27,14 +28,10 @@ export function BoardCard({ board }: { board: BoardSummary }) {
       <dl className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
         <Stat
           icon={<ListTodo className="size-3.5" />}
-          label="Open tasks"
-          value={board.openTaskCount}
+          label="Open cards"
+          value={board.openCardCount}
         />
-        <Stat
-          icon={<Columns3 className="size-3.5" />}
-          label="Columns"
-          value={board.columns.length}
-        />
+        <Stat icon={<Columns3 className="size-3.5" />} label="Columns" value={board.columnCount} />
         <Stat icon={<Users className="size-3.5" />} label="Members" value={board.memberCount} />
         {board.repo && (
           <div className="flex min-w-0 items-center gap-1">

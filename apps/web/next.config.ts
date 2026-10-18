@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  // Workspace packages ship TypeScript source.
+  transpilePackages: ["@devsync/shared"],
   turbopack: {
     rules: {
       "*.css": {

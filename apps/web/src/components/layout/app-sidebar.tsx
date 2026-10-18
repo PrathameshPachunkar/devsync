@@ -17,11 +17,12 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { MOCK_BOARDS } from "@/features/boards/data/mock-boards";
-import { accentScopeProps } from "@/lib/theme/accents";
+import { useBoards } from "@/features/boards/api";
+import { accentScopeProps, parseAccentSetting } from "@/lib/theme/accents";
 
 import { isNavItemActive, PRIMARY_NAV } from "./navigation";
 import { UserMenu } from "./user-menu";
@@ -37,7 +38,7 @@ export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
                 <DevSyncMark />
                 <span className="grid flex-1 text-left leading-tight">
                   <span className="truncate font-semibold">DevSync</span>
-                  <span className="truncate text-xs text-muted-foreground">Demo workspace</span>
+                  <span className="truncate text-xs text-muted-foreground">Kanban for GitHub</span>
                 </span>
               </Link>
             </SidebarMenuButton>
@@ -74,6 +75,7 @@ const SidebarNavigation = memo(function SidebarNavigation({
   pathname: string | null;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
+  const { data: boards, isPending } = useBoards();
   // On mobile the sidebar is a sheet. Close it after navigating.
   const closeOnMobile = isMobile ? () => setOpenMobile(false) : undefined;
 
@@ -108,9 +110,16 @@ const SidebarNavigation = memo(function SidebarNavigation({
         <SidebarGroupLabel>Boards</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {MOCK_BOARDS.map((board) => {
+            {isPending &&
+              [0, 1, 2].map((i) => (
+                <SidebarMenuItem key={i}>
+                  <SidebarMenuSkeleton showIcon />
+                </SidebarMenuItem>
+              ))}
+            {boards?.map((board) => {
               const href = `/boards/${board.id}`;
               const active = isNavItemActive(pathname, href, "prefix");
+              const accent = parseAccentSetting(board.accent);
               return (
                 <SidebarMenuItem key={board.id}>
                   <SidebarMenuButton asChild isActive={active} tooltip={board.name}>
@@ -122,15 +131,15 @@ const SidebarNavigation = memo(function SidebarNavigation({
                       <span
                         aria-hidden="true"
                         className="flex size-4 shrink-0 items-center justify-center"
-                        {...accentScopeProps(board.accent)}
+                        {...(accent ? accentScopeProps(accent) : {})}
                       >
                         <span className="size-2.5 rounded-full bg-primary" />
                       </span>
                       <span className="truncate">{board.name}</span>
                     </Link>
                   </SidebarMenuButton>
-                  <SidebarMenuBadge aria-label={`${board.openTaskCount} open tasks`}>
-                    {board.openTaskCount}
+                  <SidebarMenuBadge aria-label={`${board.openCardCount} open cards`}>
+                    {board.openCardCount}
                   </SidebarMenuBadge>
                 </SidebarMenuItem>
               );

@@ -13,11 +13,16 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
+import { useBoards } from "@/features/boards/api";
+
 import { getBreadcrumbs, type Crumb } from "./navigation";
 
 /** Reads the pathname, so render it inside <Suspense>. */
 export function AppBreadcrumbs() {
-  return <BreadcrumbTrail crumbs={getBreadcrumbs(usePathname())} />;
+  const pathname = usePathname();
+  const { data: boards } = useBoards();
+  const crumbs = getBreadcrumbs(pathname, (id) => boards?.find((b) => b.id === id)?.name);
+  return <BreadcrumbTrail crumbs={crumbs} />;
 }
 
 export function BreadcrumbTrail({ crumbs }: { crumbs: readonly Crumb[] }) {

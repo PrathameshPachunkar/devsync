@@ -22,8 +22,9 @@ describe("isNavItemActive", () => {
 });
 
 describe("getBreadcrumbs", () => {
-  it("builds board crumbs from mock data", () => {
-    expect(getBreadcrumbs("/boards/devsync-core")).toEqual([
+  it("names the board using the supplied lookup", () => {
+    const names: Record<string, string> = { "b-1": "DevSync Core" };
+    expect(getBreadcrumbs("/boards/b-1", (id) => names[id])).toEqual([
       { label: "Boards", href: "/boards" },
       { label: "DevSync Core" },
     ]);

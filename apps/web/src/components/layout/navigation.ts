@@ -1,7 +1,5 @@
 import { Palette, SquareKanban, type LucideIcon } from "lucide-react";
 
-import { getMockBoard } from "@/features/boards/data/mock-boards";
-
 export type NavMatch = "exact" | "prefix";
 
 export interface NavItem {
@@ -28,7 +26,11 @@ export interface Crumb {
   readonly href?: string;
 }
 
-export function getBreadcrumbs(pathname: string): Crumb[] {
+/** `boardName` resolves an id from cached data. Unknown ids get a generic label. */
+export function getBreadcrumbs(
+  pathname: string,
+  boardName: (id: string) => string | undefined = () => undefined,
+): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
   const [section, id] = segments;
 
@@ -36,7 +38,7 @@ export function getBreadcrumbs(pathname: string): Crumb[] {
     if (!id) return [{ label: "Boards" }];
     return [
       { label: "Boards", href: "/boards" },
-      { label: getMockBoard(decodeURIComponent(id))?.name ?? "Board" },
+      { label: boardName(decodeURIComponent(id)) ?? "Board" },
     ];
   }
 
