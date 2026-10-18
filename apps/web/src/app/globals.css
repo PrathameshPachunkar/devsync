@@ -1,0 +1,218 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * DevSync design tokens
+ * ---------------------------------------------------------------------------
+ * Every brand-tinted color derives from two variables:
+ *   --brand-h  OKLCH hue (0-360)
+ *   --brand-c  OKLCH chroma
+ * The accent engine (src/lib/theme) writes them on <html> before first paint.
+ * Any subtree, such as a board, can override them to get its own accent.
+ * Light and dark only change lightness, so every accent works in both modes.
+ */
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Kanban surfaces */
+  --color-board: var(--board);
+  --color-column: var(--column);
+  --color-column-foreground: var(--column-foreground);
+  --color-task: var(--task);
+  --color-task-foreground: var(--task-foreground);
+  --color-task-border: var(--task-border);
+  --color-drop-indicator: var(--drop-indicator);
+
+  /* GitHub item states */
+  --color-gh-open: var(--gh-open);
+  --color-gh-merged: var(--gh-merged);
+  --color-gh-closed: var(--gh-closed);
+  --color-gh-draft: var(--gh-draft);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Defaults only. The accent engine overrides them with inline styles. */
+  --brand-h: 264;
+  --brand-c: 0.19;
+  --radius: 0.625rem;
+}
+
+/*
+ * Custom properties resolve where they are declared, so a child that only
+ * changes --brand-h would still inherit the parent's computed --primary.
+ * Accent scopes ([data-accent-scope], e.g. a board) therefore re-declare
+ * the full token set, which recomputes it with their own hue.
+ */
+
+/* Light: crisp, high-contrast workspace */
+:root,
+.light,
+[data-accent-scope] {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.17 0.008 var(--brand-h));
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.52 var(--brand-c) var(--brand-h));
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.965 0.006 var(--brand-h));
+  --secondary-foreground: oklch(0.24 0.01 var(--brand-h));
+  --muted: oklch(0.965 0.004 var(--brand-h));
+  --muted-foreground: oklch(0.47 0.012 var(--brand-h));
+  --accent: oklch(0.955 0.02 var(--brand-h));
+  --accent-foreground: oklch(0.3 0.08 var(--brand-h));
+  --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(0.56 0.15 152);
+  --warning: oklch(0.7 0.16 70);
+  --border: oklch(0.905 0.006 var(--brand-h));
+  --input: oklch(0.88 0.008 var(--brand-h));
+  --ring: oklch(0.6 var(--brand-c) var(--brand-h));
+
+  --chart-1: oklch(0.52 var(--brand-c) var(--brand-h));
+  --chart-2: oklch(0.6 0.14 185);
+  --chart-3: oklch(0.7 0.16 70);
+  --chart-4: oklch(0.58 0.2 15);
+  --chart-5: oklch(0.55 0.02 var(--brand-h));
+
+  --sidebar: oklch(0.982 0.004 var(--brand-h));
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.945 0.014 var(--brand-h));
+  --sidebar-accent-foreground: oklch(0.2 0.02 var(--brand-h));
+  --sidebar-border: oklch(0.91 0.006 var(--brand-h));
+  --sidebar-ring: var(--ring);
+
+  --board: oklch(0.975 0.005 var(--brand-h));
+  --column: oklch(0.952 0.008 var(--brand-h));
+  --column-foreground: var(--muted-foreground);
+  --task: oklch(1 0 0);
+  --task-foreground: var(--foreground);
+  --task-border: oklch(0.9 0.008 var(--brand-h));
+  --drop-indicator: var(--primary);
+
+  --gh-open: oklch(0.55 0.15 150);
+  --gh-merged: oklch(0.52 0.2 300);
+  --gh-closed: oklch(0.55 0.21 25);
+  --gh-draft: oklch(0.55 0.012 260);
+}
+
+/* Dark: low eye strain. Off-black canvas and off-white text, never pure black or white */
+.dark,
+.dark [data-accent-scope] {
+  --background: oklch(0.165 0.008 var(--brand-h));
+  --foreground: oklch(0.925 0.006 var(--brand-h));
+  --card: oklch(0.2 0.009 var(--brand-h));
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.21 0.01 var(--brand-h));
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.72 calc(var(--brand-c) * 0.85) var(--brand-h));
+  --primary-foreground: oklch(0.17 0.02 var(--brand-h));
+  --secondary: oklch(0.25 0.01 var(--brand-h));
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.24 0.008 var(--brand-h));
+  --muted-foreground: oklch(0.68 0.012 var(--brand-h));
+  --accent: oklch(0.27 0.025 var(--brand-h));
+  --accent-foreground: oklch(0.93 0.01 var(--brand-h));
+  --destructive: oklch(0.68 0.19 22);
+  --success: oklch(0.72 0.15 152);
+  --warning: oklch(0.8 0.14 75);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.7 calc(var(--brand-c) * 0.85) var(--brand-h));
+
+  --chart-1: oklch(0.72 calc(var(--brand-c) * 0.85) var(--brand-h));
+  --chart-2: oklch(0.74 0.12 185);
+  --chart-3: oklch(0.8 0.14 75);
+  --chart-4: oklch(0.7 0.17 15);
+  --chart-5: oklch(0.6 0.02 var(--brand-h));
+
+  --sidebar: oklch(0.185 0.009 var(--brand-h));
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.25 0.016 var(--brand-h));
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: var(--ring);
+
+  --board: oklch(0.15 0.008 var(--brand-h));
+  --column: oklch(0.195 0.009 var(--brand-h));
+  --column-foreground: var(--muted-foreground);
+  --task: oklch(0.235 0.011 var(--brand-h));
+  --task-foreground: var(--foreground);
+  --task-border: oklch(1 0 0 / 7%);
+  --drop-indicator: var(--primary);
+
+  --gh-open: oklch(0.72 0.16 150);
+  --gh-merged: oklch(0.7 0.17 300);
+  --gh-closed: oklch(0.7 0.18 25);
+  --gh-draft: oklch(0.68 0.012 260);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
