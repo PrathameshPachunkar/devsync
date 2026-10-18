@@ -1,4 +1,12 @@
-import type { AccentDto, ChecksStatus, GitHubItemKind, GitHubItemState } from "@devsync/shared";
+import type {
+  AccentDto,
+  ChecksStatus,
+  GitHubAuthMode,
+  GitHubItemKind,
+  GitHubItemState,
+  GitHubRuleDto,
+  GitHubSyncStatus,
+} from "@devsync/shared";
 import {
   bigint,
   boolean,
@@ -126,6 +134,8 @@ export const columns = pgTable(
     name: text("name").notNull(),
     position: sortKey("position").notNull(),
     wipLimit: integer("wip_limit"),
+    /** What moving a linked card here does on GitHub. */
+    githubRule: jsonb("github_rule").$type<GitHubRuleDto>(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -199,19 +209,38 @@ export const cardAssignees = pgTable(
 
 /* ----------------------------------------------------------------- GitHub */
 
-/** Repository linked to a board. Installation and webhook tables come with live sync. */
+/** The repository linked to a board, and how the API talks to it. */
 export const boardRepos = pgTable(
   "board_repos",
   {
     boardId: uuid("board_id")
       .primaryKey()
       .references(() => boards.id, { onDelete: "cascade" }),
+    /** Canonical "owner" and "name" as GitHub reports them. */
     owner: text("owner").notNull(),
     name: text("name").notNull(),
     githubRepoId: bigint("github_repo_id", { mode: "number" }),
+    authMode: text("auth_mode").$type<GitHubAuthMode>().notNull().default("public"),
+    installationId: bigint("installation_id", { mode: "number" }),
+    /** AES-256-GCM ciphertext of a personal access token. Never returned by the API. */
+    encryptedToken: text("encrypted_token"),
+    pushEnabled: boolean("push_enabled").notNull().default(false),
+    webhookId: bigint("webhook_id", { mode: "number" }),
+    syncStatus: text("sync_status").$type<GitHubSyncStatus>().notNull().default("idle"),
+    syncStartedAt: timestamp("sync_started_at", { withTimezone: true }),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    /**
+     * Newest updated_at GitHub has returned. The next sync asks for changes
+     * since this, so it never depends on agreement between our clock and GitHub's.
+     */
+    syncCursor: timestamp("sync_cursor", { withTimezone: true }),
+    lastSyncError: text("last_sync_error"),
     createdAt: createdAt(),
   },
-  (t) => [index("board_repos_github_repo_id_idx").on(t.githubRepoId)],
+  (t) => [
+    index("board_repos_github_repo_id_idx").on(t.githubRepoId),
+    index("board_repos_owner_name_idx").on(t.owner, t.name),
+  ],
 );
 
 /** Mirror of the GitHub issue or pull request behind a card. */
@@ -221,20 +250,84 @@ export const githubItems = pgTable(
     cardId: uuid("card_id")
       .primaryKey()
       .references(() => cards.id, { onDelete: "cascade" }),
+    boardId: uuid("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
     kind: text("kind").$type<GitHubItemKind>().notNull(),
     number: integer("number").notNull(),
     state: text("state").$type<GitHubItemState>().notNull(),
     isDraft: boolean("is_draft").notNull().default(false),
     htmlUrl: text("html_url").notNull(),
+    /** "owner/name" */
     repo: text("repo").notNull(),
     headRef: text("head_ref"),
+    headSha: text("head_sha"),
     checksStatus: text("checks_status").$type<ChecksStatus>(),
     assignees: jsonb("assignees")
       .$type<{ login: string; avatarUrl: string | null }[]>()
       .notNull()
       .default([]),
-    /** GitHub's updated_at. Webhooks older than this are ignored. */
+    /** GitHub's updated_at. Older webhook payloads are ignored. */
     remoteUpdatedAt: timestamp("remote_updated_at", { withTimezone: true }),
   },
-  (t) => [index("github_items_repo_number_idx").on(t.repo, t.number)],
+  (t) => [
+    uniqueIndex("github_items_board_repo_number_key").on(t.boardId, t.repo, t.number),
+    index("github_items_repo_number_idx").on(t.repo, t.number),
+    index("github_items_head_sha_idx").on(t.headSha),
+  ],
+);
+
+/** Items whose card was deleted on purpose, so syncs don't bring them back. */
+export const githubIgnored = pgTable(
+  "github_ignored",
+  {
+    boardId: uuid("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
+    repo: text("repo").notNull(),
+    number: integer("number").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.boardId, t.repo, t.number] })],
+);
+
+/** Webhook delivery ids already handled. GitHub retries, so handling must be idempotent. */
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  deliveryId: text("delivery_id").primaryKey(),
+  event: text("event").notNull(),
+  repo: text("repo"),
+  receivedAt: createdAt(),
+});
+
+export type OutboxPayload = {
+  repo: string;
+  number: number;
+  rule: GitHubRuleDto;
+};
+
+/**
+ * Transactional outbox for pushes to GitHub. A card move writes its row in
+ * the same transaction as the move, so a GitHub outage can never lose the
+ * change or roll back the board. A worker delivers rows with retry and backoff.
+ */
+export const githubOutbox = pgTable(
+  "github_outbox",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    boardId: uuid("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
+    cardId: uuid("card_id").references(() => cards.id, { onDelete: "set null" }),
+    payload: jsonb("payload").$type<OutboxPayload>().notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    lastError: text("last_error"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    failedAt: timestamp("failed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("github_outbox_due_idx").on(t.completedAt, t.failedAt, t.nextAttemptAt),
+    index("github_outbox_board_id_idx").on(t.boardId),
+  ],
 );

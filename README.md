@@ -2,22 +2,26 @@
 
 Collaborative Kanban boards with GitHub issue and pull request sync, per-board role-based access control, and a multi-theme UI.
 
-> Status: Phase 4 of 5 (API, auth, and RBAC). Live GitHub sync and the CI pipeline arrive in Phase 5.
+[![CI](https://github.com/OWNER/devsync/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/devsync/actions/workflows/ci.yml)
+
+> Replace `OWNER` in the badge with your GitHub account once the repository is pushed.
 
 ## Stack
 
-| Layer         | Choice                                                                    |
-| ------------- | ------------------------------------------------------------------------- |
-| Monorepo      | pnpm workspaces + Turborepo                                               |
-| Web           | Next.js 16 (App Router, Cache Components), React 19, strict TypeScript    |
-| UI            | Tailwind CSS v4, shadcn/ui (Radix), Lucide                                |
-| Drag and drop | @dnd-kit/core + @dnd-kit/sortable                                         |
-| Client state  | TanStack Query (server state), Zustand (board view + UI state)            |
-| API           | Express 5, zod validation, pino logging, helmet                           |
-| Auth          | JWT access tokens (jose), rotating refresh tokens, Argon2id, GitHub OAuth |
-| Database      | PostgreSQL + Drizzle ORM. Embedded PGlite for zero-setup dev and tests    |
-| Ordering      | Fractional indexing, shared by client and server                          |
-| Tests         | Vitest, Testing Library, Supertest, Playwright                            |
+| Layer         | Choice                                                                      |
+| ------------- | --------------------------------------------------------------------------- |
+| Monorepo      | pnpm workspaces + Turborepo                                                 |
+| Web           | Next.js 16 (App Router, Cache Components), React 19, strict TypeScript      |
+| UI            | Tailwind CSS v4, shadcn/ui (Radix), Lucide                                  |
+| Drag and drop | @dnd-kit/core + @dnd-kit/sortable                                           |
+| Client state  | TanStack Query (server state), Zustand (board view + UI state)              |
+| API           | Express 5, zod validation, pino logging, helmet                             |
+| Auth          | JWT access tokens (jose), rotating refresh tokens, Argon2id, GitHub OAuth   |
+| GitHub        | Typed REST client, GitHub App or token auth, signed webhooks, outbox        |
+| CI            | GitHub Actions: format, migration drift, lint, typecheck, tests, build, e2e |
+| Database      | PostgreSQL + Drizzle ORM. Embedded PGlite for zero-setup dev and tests      |
+| Ordering      | Fractional indexing, shared by client and server                            |
+| Tests         | Vitest, Testing Library, Supertest, Playwright                              |
 
 ```
 apps/web  ── fetch (cookies) ──▶  apps/api  ──▶  PostgreSQL (or PGlite)
@@ -49,33 +53,40 @@ Open the app and choose **Try the demo**. You get a private sandbox with three b
 | `pnpm --filter @devsync/web test:e2e`   | Full-stack Playwright tests (run `pnpm build` first) |
 | `pnpm --filter @devsync/db db:generate` | Generate a SQL migration from schema changes         |
 
+To see live sync, open a board you admin, choose **GitHub**, and link any public repository, such as `tj/commander.js`. Public repos need no token and sync read-only.
+
 End-to-end tests start the API on an in-memory database next to the production web build. To use an installed browser instead of downloading one, set `PW_CHANNEL=msedge` or `PW_CHANNEL=chrome`. API tests run on in-memory PGlite. Set `TEST_DATABASE_URL` to run them against a real Postgres server.
 
 ## API
 
 Base path `/v1`. Every error has the shape `{ "error": { "code", "message", "details?" } }`. Board writes return `{ "data", "version" }`.
 
-| Method                | Path                                    | Permission                      |
-| --------------------- | --------------------------------------- | ------------------------------- |
-| POST                  | `/auth/register`, `/auth/login`         | public, rate-limited            |
-| POST                  | `/auth/demo`                            | public, rate-limited            |
-| POST                  | `/auth/refresh`, `/auth/logout`         | refresh cookie                  |
-| GET                   | `/auth/me`, `/auth/providers`           | signed in, public               |
-| GET                   | `/auth/github`, `/auth/github/callback` | OAuth flow                      |
-| GET                   | `/boards`                               | signed in                       |
-| POST                  | `/boards`                               | signed in                       |
-| GET                   | `/boards/:id`                           | `board:view`                    |
-| PATCH / DELETE        | `/boards/:id`                           | `board:update` / `board:delete` |
-| POST                  | `/boards/:id/columns`                   | `column:create`                 |
-| PATCH                 | `/boards/:id/columns/:columnId`         | `column:rename`                 |
-| POST                  | `/boards/:id/columns/:columnId/move`    | `column:reorder`                |
-| DELETE                | `/boards/:id/columns/:columnId`         | `column:delete`                 |
-| POST                  | `/boards/:id/cards`                     | `card:create`                   |
-| PATCH                 | `/boards/:id/cards/:cardId`             | `card:edit`                     |
-| POST                  | `/boards/:id/cards/:cardId/move`        | `card:move`                     |
-| DELETE                | `/boards/:id/cards/:cardId`             | `card:delete`                   |
-| GET                   | `/boards/:id/members`                   | `board:view`                    |
-| POST / PATCH / DELETE | `/boards/:id/members[/:userId]`         | `member:manage`                 |
+| Method                | Path                                      | Permission                      |
+| --------------------- | ----------------------------------------- | ------------------------------- |
+| POST                  | `/auth/register`, `/auth/login`           | public, rate-limited            |
+| POST                  | `/auth/demo`                              | public, rate-limited            |
+| POST                  | `/auth/refresh`, `/auth/logout`           | refresh cookie                  |
+| GET                   | `/auth/me`, `/auth/providers`             | signed in, public               |
+| GET                   | `/auth/github`, `/auth/github/callback`   | OAuth flow                      |
+| GET                   | `/boards`                                 | signed in                       |
+| POST                  | `/boards`                                 | signed in                       |
+| GET                   | `/boards/:id`                             | `board:view`                    |
+| PATCH / DELETE        | `/boards/:id`                             | `board:update` / `board:delete` |
+| POST                  | `/boards/:id/columns`                     | `column:create`                 |
+| PATCH                 | `/boards/:id/columns/:columnId`           | `column:rename`                 |
+| POST                  | `/boards/:id/columns/:columnId/move`      | `column:reorder`                |
+| DELETE                | `/boards/:id/columns/:columnId`           | `column:delete`                 |
+| POST                  | `/boards/:id/cards`                       | `card:create`                   |
+| PATCH                 | `/boards/:id/cards/:cardId`               | `card:edit`                     |
+| POST                  | `/boards/:id/cards/:cardId/move`          | `card:move`                     |
+| DELETE                | `/boards/:id/cards/:cardId`               | `card:delete`                   |
+| GET                   | `/boards/:id/members`                     | `board:view`                    |
+| POST / PATCH / DELETE | `/boards/:id/members[/:userId]`           | `member:manage`                 |
+| GET                   | `/boards/:id/github`                      | `board:view`                    |
+| PUT / PATCH / DELETE  | `/boards/:id/github` (link, push, unlink) | `repo:link`                     |
+| POST                  | `/boards/:id/github/sync`                 | `github:sync`                   |
+| PUT                   | `/boards/:id/github/rules/:columnId`      | `sync:configure`                |
+| POST                  | `/github/webhooks`                        | HMAC signature                  |
 
 | Permission                                 | Admin | Maintainer | Viewer |
 | ------------------------------------------ | :---: | :--------: | :----: |
@@ -86,6 +97,31 @@ Base path `/v1`. Every error has the shape `{ "error": { "code", "message", "det
 | Manage members and roles                   |   ✓   |            |        |
 
 The matrix lives in `packages/shared/src/permissions.ts`. The API enforces it in one middleware, and the web app reads the same table to hide controls.
+
+## GitHub integration
+
+- **Linking.** Admins link a repository by `owner/name` or URL. The API picks the best credentials it has. It uses the GitHub App when the App is installed on the repo. Otherwise it uses a supplied fine-grained token, encrypted with AES-256-GCM. Without either, it falls back to public read-only access.
+- **Pull sync.** Open issues and PRs become cards in the first column, with labels, assignees, draft state, branch, and combined check status. Later syncs are incremental. The cursor is the newest `updated_at` that GitHub itself returned, so syncs never depend on server clocks agreeing.
+- **State changes.** Closing or merging on GitHub moves the card to the closing column, and reopening moves it back. Deleting a synced card stops it from being imported again.
+- **Webhooks.** `POST /v1/github/webhooks` checks the `X-Hub-Signature-256` HMAC in constant time and records delivery ids, so redeliveries do nothing. It handles `issues`, `pull_request`, `check_suite`, and `check_run`, and ignores payloads older than the stored `updated_at`. Without a public URL, boards re-sync every few minutes instead.
+- **Push-back.** Each column can carry a rule, for example "close the issue and add `shipped`". A card move writes its GitHub update to an outbox table in the same transaction as the move. A worker leases rows with `FOR UPDATE SKIP LOCKED`, which is safe across instances, and retries with exponential backoff. When GitHub echoes our own change back by webhook, the echo is ignored.
+- **Ownership.** GitHub owns the title and body of synced cards, and the API rejects local edits. Demo sample data stays editable.
+
+Optional settings live in `apps/api/.env.example`:
+
+- **GitHub App:** `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`.
+- **Webhooks:** `GITHUB_WEBHOOK_SECRET`.
+- **Higher public rate limits:** `GITHUB_TOKEN`.
+- **Token encryption:** `TOKEN_ENCRYPTION_KEY`, required in production.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request:
+
+1. **Verify:** a format check, then a migration drift check, so schema changes must ship with a migration. Next come lint, typecheck, and every unit and integration test, with the API suite running against a Postgres 17 service container. Last, production builds of both apps.
+2. **End-to-end:** Playwright in Chromium against the production web build and the API, with traces uploaded on failure.
+
+Dependabot keeps npm packages and Actions versions current.
 
 ### Auth and security design
 

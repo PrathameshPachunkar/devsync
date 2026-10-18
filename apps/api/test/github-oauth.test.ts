@@ -26,7 +26,9 @@ function fakeGitHub(profile: { id: number; login: string; email: string | null }
 }
 
 let t: TestContext;
-const profile = { id: 4242, login: "octocat", email: null as string | null };
+// Random GitHub ids keep reruns against a shared database independent.
+const randomId = () => 1_000_000 + Math.floor(Math.random() * 1_000_000_000);
+const profile = { id: randomId(), login: "octocat", email: null as string | null };
 
 beforeAll(async () => {
   t = await createTestApp(
@@ -95,7 +97,7 @@ describe("Sign in with GitHub", () => {
 
   it("links to an existing password account with the same verified email", async () => {
     const existing = await signUp(t.app, "Ada");
-    profile.id = 777;
+    profile.id = randomId();
     profile.login = "ada-gh";
     profile.email = existing.email;
 

@@ -46,6 +46,8 @@ export interface BoardStoreState extends BoardView {
   readonly name: string;
   /** "owner/name" of the linked repository, if any. */
   readonly repoLabel: string | null;
+  /** Cards with GitHub data come from a real repo and are edited on GitHub. */
+  readonly githubManaged: boolean;
   readonly role: BoardRole;
   readonly accent: AccentSetting | null;
   readonly activeDrag: ActiveDrag | null;
@@ -59,6 +61,7 @@ function boardMeta(board: BoardDto) {
     boardId: board.id,
     name: board.name,
     repoLabel: board.repo ? `${board.repo.owner}/${board.repo.name}` : null,
+    githubManaged: board.repo !== null && !board.repo.demo,
     role: board.role,
     accent: parseAccentSetting(board.accent),
   };
@@ -77,6 +80,7 @@ export function createBoardStore(initial: BoardDto): StoreApi<BoardStoreState> {
         ...view,
         name: meta.name,
         repoLabel: meta.repoLabel,
+        githubManaged: meta.githubManaged,
         role: meta.role,
         // Keep the accent object stable unless it actually changed.
         accent:

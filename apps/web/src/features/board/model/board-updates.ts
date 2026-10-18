@@ -94,6 +94,7 @@ export function applyCreateColumn(board: BoardDto, input: CreateColumnInput): Bo
     name: cleanName(input.name, COLUMN_NAME_MAX_LENGTH),
     position: placeAmong(board.columns, null, null),
     wipLimit: null,
+    githubRule: null,
   };
   return bump(board, { columns: [...board.columns, column] });
 }

@@ -41,7 +41,8 @@ export async function createTestApp(
   const database = url
     ? createPostgresDatabase(url, Number(process.env.TEST_DATABASE_POOL_SIZE ?? 5))
     : createPgliteDatabase();
-  await database.migrate();
+  // A shared server database is migrated once in global-setup.ts.
+  if (!url) await database.migrate();
   const ctx = createContext(config, database, createLogger(config), fetchImpl);
   return { app: createApp(ctx), ctx, database, close: database.close };
 }

@@ -67,7 +67,8 @@ async function cloneTemplate(
     { boardId, userId: guestId, role: template.role },
   ]);
   if (template.repo) {
-    await tx.insert(boardRepos).values({ boardId, ...template.repo });
+    // Sample data only: never synced or pushed.
+    await tx.insert(boardRepos).values({ boardId, ...template.repo, authMode: "demo" });
   }
 
   const columnPositions = positionsBetween(null, null, template.columns.length);
@@ -120,7 +121,7 @@ async function cloneTemplate(
       const userId = accounts.teamIdByKey.get(key);
       if (userId) assigneeRows.push({ cardId: id, userId });
     }
-    if (card.github) githubRows.push({ cardId: id, ...card.github });
+    if (card.github) githubRows.push({ cardId: id, boardId, ...card.github });
   }
 
   await tx.insert(cards).values(cardRows);

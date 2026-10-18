@@ -38,12 +38,23 @@ export interface GitHubItemDto {
   assignees: { login: string; avatarUrl: string | null }[];
 }
 
+/**
+ * What moving a linked card into a column does on GitHub. Applied only when
+ * the board has push-back enabled.
+ */
+export interface GitHubRuleDto {
+  state?: "open" | "closed";
+  addLabels?: string[];
+  removeLabels?: string[];
+}
+
 export interface ColumnDto {
   id: string;
   boardId: string;
   name: string;
   position: string;
   wipLimit: number | null;
+  githubRule: GitHubRuleDto | null;
 }
 
 export interface CardDto {
@@ -65,6 +76,11 @@ export interface CardDto {
 export interface LinkedRepoDto {
   owner: string;
   name: string;
+  /**
+   * Sample data from the demo sandbox, not a live link. Demo cards stay
+   * editable, while cards from a real repository are owned by GitHub.
+   */
+  demo: boolean;
 }
 
 export interface BoardDto {

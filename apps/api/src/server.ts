@@ -32,7 +32,9 @@ const database =
 await database.migrate();
 logger.info({ driver: database.driver }, "Database migrated");
 
-const app = createApp(createContext(config, database, logger));
+const ctx = createContext(config, database, logger);
+const app = createApp(ctx);
+ctx.jobs?.start();
 const server = app.listen(config.port, () => {
   logger.info(`DevSync API listening on http://localhost:${config.port}`);
 });
@@ -42,7 +44,9 @@ async function shutdown(signal: string) {
   if (shuttingDown) return;
   shuttingDown = true;
   logger.info({ signal }, "Shutting down");
+  ctx.jobs?.stop();
   server.close();
+  await ctx.jobs?.idle();
   await database.close();
   process.exit(0);
 }

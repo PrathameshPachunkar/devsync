@@ -29,6 +29,7 @@ export function seedBoard(boardId: string): BoardDto | null {
     name: column.name,
     position: columnPositions[index]!,
     wipLimit: column.wipLimit,
+    githubRule: null,
   }));
 
   const counts = template.columns.map(
@@ -58,7 +59,7 @@ export function seedBoard(boardId: string): BoardDto | null {
     name: template.name,
     description: template.description,
     accent: template.accent,
-    repo: template.repo,
+    repo: template.repo ? { ...template.repo, demo: true } : null,
     role: template.role,
     version: 1,
     columns,

@@ -30,6 +30,7 @@ export const BOARD_PERMISSIONS = {
   "column:delete": ADMINS,
   "repo:link": ADMINS,
   "sync:configure": ADMINS,
+  "github:sync": EDITORS,
   "member:manage": ADMINS,
   "board:delete": ADMINS,
 } as const satisfies Record<string, readonly BoardRole[]>;

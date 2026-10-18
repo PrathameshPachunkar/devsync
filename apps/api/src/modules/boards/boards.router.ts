@@ -24,13 +24,15 @@ import { loadBoardDto } from "./board-dto";
 import { createBoard, deleteBoard, listBoardSummaries, updateBoard } from "./boards.service";
 import { createCard, deleteCard, moveCard, updateCard } from "./cards.service";
 import { createColumn, deleteColumn, moveColumn, renameColumn } from "./columns.service";
+import { githubRouter } from "../github/github.router";
 import { addMember, listMembers, removeMember, updateMemberRole } from "./members.service";
 
 /**
  * /v1/boards. Every route below the board id is guarded by
  * requireBoardPermission with the permission the shared RBAC matrix assigns.
  */
-export function boardsRouter({ db }: AppContext): Router {
+export function boardsRouter(ctx: AppContext): Router {
+  const { db } = ctx;
   const router = Router();
   const guard = (permission: Parameters<typeof requireBoardPermission>[1]) =>
     requireBoardPermission(db, permission);
@@ -105,6 +107,8 @@ export function boardsRouter({ db }: AppContext): Router {
     const input = parse(moveCardSchema, req.body);
     const cardId = paramId(req, "cardId", "card_not_found");
     res.json(await moveCard(db, requireBoardAccess(req).boardId, cardId, input));
+    // The move may have queued GitHub updates. Deliver them promptly.
+    ctx.jobs?.kick();
   });
 
   router.delete("/:boardId/cards/:cardId", guard("card:delete"), async (req, res) => {
@@ -138,6 +142,8 @@ export function boardsRouter({ db }: AppContext): Router {
     await removeMember(db, requireBoardAccess(req).boardId, userId);
     res.status(204).end();
   });
+
+  router.use("/:boardId/github", githubRouter(ctx));
 
   return router;
 }

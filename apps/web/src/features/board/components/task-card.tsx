@@ -56,7 +56,15 @@ export const TaskCardBody = memo(function TaskCardBody({
   trackRender("TaskCardBody");
   const gh = card.github;
   const checks = gh?.checksStatus ? CHECKS[gh.checksStatus] : null;
-  const visibleAssignees = card.assignees.slice(0, 3);
+  // DevSync assignees first. Synced cards fall back to GitHub assignees.
+  const people = card.assignees.length
+    ? card.assignees.map((a) => ({ key: a.id, name: a.name, avatarUrl: a.avatarUrl }))
+    : (gh?.assignees ?? []).map((a) => ({
+        key: a.login,
+        name: `@${a.login}`,
+        avatarUrl: a.avatarUrl,
+      }));
+  const visibleAssignees = people.slice(0, 3);
 
   return (
     <article
@@ -103,19 +111,32 @@ export const TaskCardBody = memo(function TaskCardBody({
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {visibleAssignees.length > 0 && (
             <span className="flex -space-x-1">
-              <span className="sr-only">
-                Assigned to {card.assignees.map((a) => a.name).join(", ")}
-              </span>
-              {visibleAssignees.map((user) => (
-                <span
-                  key={user.id}
-                  aria-hidden="true"
-                  title={user.name}
-                  className="flex size-6 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground ring-2 ring-task"
-                >
-                  {initials(user.name)}
-                </span>
-              ))}
+              <span className="sr-only">Assigned to {people.map((a) => a.name).join(", ")}</span>
+              {visibleAssignees.map((user) =>
+                user.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- 24px external avatar; next/image adds nothing here
+                  <img
+                    key={user.key}
+                    src={user.avatarUrl}
+                    alt=""
+                    title={user.name}
+                    width={24}
+                    height={24}
+                    loading="lazy"
+                    decoding="async"
+                    className="size-6 rounded-full bg-secondary ring-2 ring-task"
+                  />
+                ) : (
+                  <span
+                    key={user.key}
+                    aria-hidden="true"
+                    title={user.name}
+                    className="flex size-6 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground ring-2 ring-task"
+                  >
+                    {initials(user.name.replace(/^@/, ""))}
+                  </span>
+                ),
+              )}
             </span>
           )}
           {checks && (

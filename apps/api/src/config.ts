@@ -38,8 +38,24 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT: z.coerce.number().int().positive().default(30),
   DEMO_ENABLED: flag.default(true),
 
+  /** OAuth app for "Sign in with GitHub". */
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
+
+  /** GitHub REST base URL (GitHub Enterprise, or a fake in tests). */
+  GITHUB_API_URL: z.url().default("https://api.github.com"),
+  /** GitHub App for repo access. The private key may use 
+ escapes. */
+  GITHUB_APP_ID: z.string().optional(),
+  GITHUB_APP_PRIVATE_KEY: z.string().optional(),
+  /** Shared secret that signs webhook deliveries (App or repo webhooks). */
+  GITHUB_WEBHOOK_SECRET: z.string().min(16).optional(),
+  /** Optional server token for reading public repos (5,000 req/h instead of 60). */
+  GITHUB_TOKEN: z.string().optional(),
+  /** 32-byte key (base64) for encrypting stored access tokens. */
+  TOKEN_ENCRYPTION_KEY: z.string().optional(),
+  GITHUB_SYNC_INTERVAL_MINUTES: z.coerce.number().int().min(0).default(10),
+  GITHUB_SYNC_ITEM_LIMIT: z.coerce.number().int().min(10).max(1000).default(200),
 });
 
 export interface AppConfig {
@@ -59,6 +75,14 @@ export interface AppConfig {
   authRateLimit: number;
   demoEnabled: boolean;
   github: { clientId: string; clientSecret: string } | null;
+  githubApiUrl: string;
+  githubApp: { appId: string; privateKey: string } | null;
+  githubWebhookSecret: string | null;
+  githubToken: string | null;
+  /** Raw key material. lib/crypto derives the AES key from it. */
+  tokenEncryptionKey: string;
+  githubSyncIntervalMinutes: number;
+  githubSyncItemLimit: number;
 }
 
 export class ConfigError extends Error {
@@ -77,6 +101,9 @@ export function loadConfig(source: Record<string, string | undefined> = process.
   if (production && !env.DATABASE_URL)
     throw new ConfigError("DATABASE_URL is required in production");
   if (production && !env.JWT_SECRET) throw new ConfigError("JWT_SECRET is required in production");
+  if (production && !env.TOKEN_ENCRYPTION_KEY) {
+    throw new ConfigError("TOKEN_ENCRYPTION_KEY is required in production");
+  }
 
   return {
     env: env.NODE_ENV,
@@ -105,5 +132,20 @@ export function loadConfig(source: Record<string, string | undefined> = process.
       env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
         ? { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET }
         : null,
+    githubApiUrl: env.GITHUB_API_URL.replace(/\/$/, ""),
+    githubApp:
+      env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY
+        ? {
+            appId: env.GITHUB_APP_ID,
+            // Env files often store the PEM on one line with literal "\n".
+            privateKey: env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, "\n"),
+          }
+        : null,
+    githubWebhookSecret: env.GITHUB_WEBHOOK_SECRET ?? null,
+    githubToken: env.GITHUB_TOKEN || null,
+    // Development falls back to a key derived from the JWT secret.
+    tokenEncryptionKey: env.TOKEN_ENCRYPTION_KEY ?? `dev:${env.JWT_SECRET ?? DEV_JWT_SECRET}`,
+    githubSyncIntervalMinutes: env.GITHUB_SYNC_INTERVAL_MINUTES,
+    githubSyncItemLimit: env.GITHUB_SYNC_ITEM_LIMIT,
   };
 }

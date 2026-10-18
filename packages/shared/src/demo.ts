@@ -1,4 +1,6 @@
-import type { AccentDto, GitHubItemDto, LinkedRepoDto } from "./board";
+import type { AccentDto, GitHubItemDto } from "./board";
+
+type DemoRepo = { owner: string; name: string };
 import type { BoardRole } from "./permissions";
 
 /**
@@ -56,7 +58,7 @@ export interface DemoBoardTemplate {
   name: string;
   description: string;
   accent: AccentDto;
-  repo: LinkedRepoDto | null;
+  repo: DemoRepo | null;
   /** The visitor's role, chosen to show off RBAC. */
   role: BoardRole;
   columns: { name: string; wipLimit: number | null }[];
@@ -94,7 +96,7 @@ interface BoardSpec {
   name: string;
   description: string;
   accent: AccentDto;
-  repo: LinkedRepoDto | null;
+  repo: DemoRepo | null;
   role: BoardRole;
   columns: { name: string; wipLimit: number | null; cards: number }[];
 }

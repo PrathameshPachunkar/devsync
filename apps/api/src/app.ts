@@ -10,6 +10,7 @@ import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { originCheck } from "./middleware/origin-check";
 import { authRouter } from "./modules/auth/auth.router";
 import { boardsRouter } from "./modules/boards/boards.router";
+import { webhookHandler } from "./modules/github/webhooks";
 
 /** Builds the Express app from injected dependencies. Nothing here touches globals. */
 export function createApp(ctx: AppContext): Express {
@@ -32,9 +33,15 @@ export function createApp(ctx: AppContext): Express {
     cors({
       origin: config.webOrigins,
       credentials: true,
-      methods: ["GET", "POST", "PATCH", "DELETE"],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
       maxAge: 600,
     }),
+  );
+  // Before express.json: the signature covers the exact raw bytes.
+  app.post(
+    "/v1/github/webhooks",
+    express.raw({ type: "application/json", limit: "5mb" }),
+    webhookHandler(ctx),
   );
   app.use(express.json({ limit: "100kb" }));
   app.use(cookieParser());

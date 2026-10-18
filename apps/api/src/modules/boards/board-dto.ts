@@ -34,6 +34,7 @@ export function toColumnDto(row: ColumnRow): ColumnDto {
     name: row.name,
     position: row.position,
     wipLimit: row.wipLimit,
+    githubRule: row.githubRule ?? null,
   };
 }
 
@@ -161,7 +162,7 @@ export async function loadBoardDto(
     name: board.name,
     description: board.description,
     accent: board.accent ?? null,
-    repo: repo ? { owner: repo.owner, name: repo.name } : null,
+    repo: repo ? { owner: repo.owner, name: repo.name, demo: repo.authMode === "demo" } : null,
     role,
     version: board.version,
     columns: columnRows.map(toColumnDto),

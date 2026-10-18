@@ -59,7 +59,10 @@ function CardDetails({
   columnName: string;
   onClose: () => void;
 }) {
-  const canEdit = useBoardPermission("card:edit");
+  // GitHub owns the title and body of cards synced from a real repo, and the
+  // API rejects edits to them. Demo sample cards stay editable.
+  const githubManaged = useBoardStore((state) => state.githubManaged);
+  const canEdit = useBoardPermission("card:edit") && !(card.github && githubManaged);
   const canDelete = useBoardPermission("card:delete");
   const { mutate: updateCard } = useUpdateCard();
   const { mutate: deleteCard } = useDeleteCard();
@@ -130,6 +133,11 @@ function CardDetails({
               />
             </div>
           )}
+          {gh && githubManaged && (
+            <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              Synced from GitHub. Edit the title and description there, and they update here.
+            </p>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="card-description">Description</Label>
             {canEdit ? (
@@ -175,14 +183,20 @@ function CardDetails({
             )}
           </MetaRow>
           <MetaRow label="Assignees">
-            {card.assignees.length === 0 ? (
-              <span className="text-muted-foreground">Unassigned</span>
-            ) : (
+            {card.assignees.length > 0 ? (
               <ul className="grid gap-1">
                 {card.assignees.map((user) => (
                   <li key={user.id}>{user.name}</li>
                 ))}
               </ul>
+            ) : gh?.assignees.length ? (
+              <ul className="grid gap-1 font-mono text-xs">
+                {gh.assignees.map((user) => (
+                  <li key={user.login}>@{user.login}</li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-muted-foreground">Unassigned</span>
             )}
           </MetaRow>
           {card.dueDate && (

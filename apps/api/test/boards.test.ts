@@ -88,7 +88,8 @@ describe("cards", () => {
 
   it("updates and deletes cards", async () => {
     const board = await getBoard(agent, boardId);
-    const id = board.cards[0]!.id;
+    // A plain card: synced ones would belong to GitHub. Demo ones are editable anyway.
+    const id = board.cards.find((c) => !c.github)!.id;
     const res = await agent
       .patch(`/v1/boards/${boardId}/cards/${id}`)
       .send({ title: "Renamed", description: "  " })

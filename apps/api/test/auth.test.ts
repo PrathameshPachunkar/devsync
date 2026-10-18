@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -21,12 +23,18 @@ const refreshWith = (token: string) =>
 describe("registration and login", () => {
   it("registers, sets httpOnly session cookies, and creates a starter board", async () => {
     const agent = client(t.app);
+    // Unique, so reruns against a shared CI database never collide.
+    const id = randomUUID().slice(0, 8);
     const res = await agent
       .post("/v1/auth/register")
-      .send({ name: "Ada", email: "ADA@Example.test ", password: "correct horse battery" })
+      .send({ name: "Ada", email: ` ADA-${id}@Example.test `, password: "correct horse battery" })
       .expect(201);
 
-    expect(res.body.user).toMatchObject({ name: "Ada", email: "ada@example.test", isGuest: false });
+    expect(res.body.user).toMatchObject({
+      name: "Ada",
+      email: `ada-${id}@example.test`,
+      isGuest: false,
+    });
     expect(res.body.accessToken).toEqual(expect.any(String));
     const cookies = res.headers["set-cookie"] as unknown as string[];
     expect(cookies.find((c) => c.startsWith("devsync_at="))).toMatch(/HttpOnly/i);
@@ -187,7 +195,7 @@ describe("demo sandbox", () => {
     const board = (await a.get(`/v1/boards/${boardsA[0].id}`).expect(200)).body.data;
     expect(board.cards).toHaveLength(120);
     expect(board.cards.some((c: { github: unknown }) => c.github)).toBe(true);
-    expect(board.repo).toEqual({ owner: "devsync", name: "devsync" });
+    expect(board.repo).toEqual({ owner: "devsync", name: "devsync", demo: true });
   });
 
   it("can be switched off", async () => {

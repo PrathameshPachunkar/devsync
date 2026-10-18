@@ -71,7 +71,7 @@ export async function listBoardSummaries(db: DbOrTx, userId: string): Promise<Bo
       name: board.name,
       description: board.description,
       accent: board.accent ?? null,
-      repo: repo ? { owner: repo.owner, name: repo.name } : null,
+      repo: repo ? { owner: repo.owner, name: repo.name, demo: repo.authMode === "demo" } : null,
       role,
       columnCount: boardColumns.length,
       openCardCount,
