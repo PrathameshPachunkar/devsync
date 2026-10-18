@@ -2,6 +2,10 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# Packages allowed to run install scripts. pnpm blocks unlisted ones and fails
+# CI installs (Vercel, GitHub Actions) when any are left unreviewed.
 allowBuilds:
+  # Verifies its platform binary. Used by tsx, tsdown, drizzle-kit, and vitest.
+  esbuild: true
   sharp: false
   unrs-resolver: false
