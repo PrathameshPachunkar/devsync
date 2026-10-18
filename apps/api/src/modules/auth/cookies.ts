@@ -14,8 +14,14 @@ export const OAUTH_STATE_COOKIE = "devsync_oauth";
  */
 export const SESSION_HINT_COOKIE = "devsync_session";
 
+/**
+ * Cookie paths are what the browser sees. Behind the web app's /api proxy,
+ * the browser requests /api/v1/auth/..., so the paths carry that prefix.
+ */
+const authPath = (config: AppConfig) => `${config.apiBasePath}/v1/auth`;
+
 /** The refresh token is only ever sent to the auth routes. */
-export const REFRESH_COOKIE_PATH = "/v1/auth";
+export const refreshCookiePath = authPath;
 
 function base(config: AppConfig): CookieOptions {
   return {
@@ -36,7 +42,7 @@ export function setSessionCookies(res: Response, config: AppConfig, session: Iss
   });
   res.cookie(REFRESH_COOKIE, session.refreshToken, {
     ...base(config),
-    path: REFRESH_COOKIE_PATH,
+    path: refreshCookiePath(config),
     expires: session.refreshExpiresAt,
   });
   res.cookie(SESSION_HINT_COOKIE, "1", {
@@ -49,10 +55,10 @@ export function setSessionCookies(res: Response, config: AppConfig, session: Iss
 
 export function clearSessionCookies(res: Response, config: AppConfig) {
   res.clearCookie(ACCESS_COOKIE, { ...base(config), path: "/" });
-  res.clearCookie(REFRESH_COOKIE, { ...base(config), path: REFRESH_COOKIE_PATH });
+  res.clearCookie(REFRESH_COOKIE, { ...base(config), path: refreshCookiePath(config) });
   res.clearCookie(SESSION_HINT_COOKIE, { ...base(config), httpOnly: false, path: "/" });
 }
 
 export function oauthStateCookieOptions(config: AppConfig): CookieOptions {
-  return { ...base(config), path: "/v1/auth/github", maxAge: 10 * 60 * 1000 };
+  return { ...base(config), path: `${authPath(config)}/github`, maxAge: 10 * 60 * 1000 };
 }

@@ -20,8 +20,21 @@ const envSchema = z.object({
   WEB_ORIGINS: z.string().default("http://localhost:3000"),
   /** Where OAuth callbacks send the user afterwards. */
   WEB_URL: z.url().default("http://localhost:3000"),
+  /**
+   * Public URL of the API as browsers reach it. When the web app proxies the
+   * API (e.g. https://app.vercel.app/api), its path becomes the cookie path prefix.
+   */
   API_PUBLIC_URL: z.url().default("http://localhost:4000"),
-  TRUST_PROXY: flag.default(false),
+  /**
+   * "true", "false", or the number of proxy hops in front of the API. A hop
+   * count (e.g. 2 for Vercel then Railway) lets rate limiting see the client IP
+   * without trusting a spoofable X-Forwarded-For.
+   */
+  TRUST_PROXY: z
+    .string()
+    .default("false")
+    .refine((value) => /^(true|false|\d+)$/.test(value), "Use true, false, or a hop count")
+    .transform((value) => (value === "true" ? true : value === "false" ? false : Number(value))),
 
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters").optional(),
   ACCESS_TOKEN_TTL_SECONDS: z.coerce
@@ -66,7 +79,9 @@ export interface AppConfig {
   webOrigins: string[];
   webUrl: string;
   apiPublicUrl: string;
-  trustProxy: boolean;
+  /** Path the API is served under publicly: "" directly, "/api" behind the web proxy. */
+  apiBasePath: string;
+  trustProxy: boolean | number;
   jwtSecret: string;
   accessTokenTtlSeconds: number;
   refreshTokenTtlDays: number;
@@ -120,6 +135,7 @@ export function loadConfig(source: Record<string, string | undefined> = process.
       .filter(Boolean),
     webUrl: env.WEB_URL.replace(/\/$/, ""),
     apiPublicUrl: env.API_PUBLIC_URL.replace(/\/$/, ""),
+    apiBasePath: new URL(env.API_PUBLIC_URL).pathname.replace(/\/+$/, ""),
     trustProxy: env.TRUST_PROXY,
     jwtSecret: env.JWT_SECRET ?? DEV_JWT_SECRET,
     accessTokenTtlSeconds: env.ACCESS_TOKEN_TTL_SECONDS,

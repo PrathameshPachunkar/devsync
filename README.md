@@ -98,6 +98,24 @@ Base path `/v1`. Every error has the shape `{ "error": { "code", "message", "det
 
 The matrix lives in `packages/shared/src/permissions.ts`. The API enforces it in one middleware, and the web app reads the same table to hide controls.
 
+## Deployment
+
+The web app runs on Vercel and the API on any Node host, such as Railway, with Postgres on Neon or similar. The API is a long-running server with background jobs, so it can't run as serverless functions.
+
+Without a shared custom domain, the web app proxies the API so that session cookies stay first-party:
+
+| Where   | Variable                 | Value                             |
+| ------- | ------------------------ | --------------------------------- |
+| Vercel  | `NEXT_PUBLIC_API_URL`    | `/api`                            |
+| Vercel  | `API_PROXY_TARGET`       | `https://your-api.up.railway.app` |
+| Railway | `API_PUBLIC_URL`         | `https://your-app.vercel.app/api` |
+| Railway | `WEB_ORIGINS`, `WEB_URL` | `https://your-app.vercel.app`     |
+| Railway | `TRUST_PROXY`            | `2` (Vercel, then Railway's edge) |
+
+With a shared domain (`app.example.com` and `api.example.com`), point `NEXT_PUBLIC_API_URL` at the API directly, leave `API_PROXY_TARGET` unset, and set `COOKIE_DOMAIN=.example.com`.
+
+Every deployment also needs `NODE_ENV=production`, `DATABASE_URL`, `JWT_SECRET`, and `TOKEN_ENCRYPTION_KEY` on the API. It refuses to start without them.
+
 ## GitHub integration
 
 - **Linking.** Admins link a repository by `owner/name` or URL. The API picks the best credentials it has. It uses the GitHub App when the App is installed on the repo. Otherwise it uses a supplied fine-grained token, encrypted with AES-256-GCM. Without either, it falls back to public read-only access.
