@@ -91,7 +91,11 @@ function FormError({ message }: { message: string | undefined }) {
 function AlternativeSignIns({ next }: { next: string }) {
   const { data: providers } = useAuthProviders();
   const demo = useDemoLogin();
-  if (!providers?.github && !providers?.demo) return null;
+  // Guest access shouldn't wait on /providers: a slow or failed lookup would
+  // otherwise hide the button from first-time visitors. Hide it only when the
+  // API says the demo is off.
+  const guestEnabled = providers?.demo !== false;
+  if (!providers?.github && !guestEnabled) return null;
 
   return (
     <>
@@ -101,22 +105,22 @@ function AlternativeSignIns({ next }: { next: string }) {
         <span className="h-px flex-1 bg-border" />
       </div>
       <div className="grid gap-2">
-        {providers.github && (
-          <Button variant="outline" asChild>
-            <a href={authApi.githubUrl(next)}>
-              <GitHubIcon data-icon="inline-start" />
-              Continue with GitHub
-            </a>
-          </Button>
-        )}
-        {providers.demo && (
+        {guestEnabled && (
           <Button variant="secondary" onClick={() => demo.mutate()} disabled={demo.isPending}>
             {demo.isPending ? (
               <Loader2 data-icon="inline-start" className="animate-spin" />
             ) : (
               <Sparkles data-icon="inline-start" />
             )}
-            Try the demo, no sign-up
+            Explore as guest
+          </Button>
+        )}
+        {providers?.github && (
+          <Button variant="outline" asChild>
+            <a href={authApi.githubUrl(next)}>
+              <GitHubIcon data-icon="inline-start" />
+              Continue with GitHub
+            </a>
           </Button>
         )}
         <FormError message={demo.error?.message} />

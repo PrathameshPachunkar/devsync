@@ -11,7 +11,7 @@ test.describe("authentication", () => {
     await page.goto("/settings/appearance");
     await expect(page).toHaveURL(/\/login\?next=%2Fsettings%2Fappearance/);
 
-    await page.getByRole("button", { name: "Try the demo, no sign-up" }).click();
+    await page.getByRole("button", { name: "Explore as guest" }).click();
     await expect(page).toHaveURL(/\/settings\/appearance$/);
     await expect(page.getByRole("heading", { name: "Appearance" })).toBeVisible();
   });

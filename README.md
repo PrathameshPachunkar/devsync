@@ -42,7 +42,7 @@ pnpm dev          # web on http://localhost:3000, API on http://localhost:4000
 
 No database setup is needed. Without `DATABASE_URL`, the API runs embedded PGlite (real Postgres compiled to WebAssembly) and stores data in `apps/api/.data`. For a real Postgres server, run `docker compose up -d` and set `DATABASE_URL` as shown in `apps/api/.env.example`.
 
-Open the app and choose **Try the demo**. You get a private sandbox with three boards, one for each role: Admin, Maintainer, and Viewer.
+Open the app and choose **Explore as guest**. You get a private sandbox with three boards, one for each role: Admin, Maintainer, and Viewer.
 
 | Command                                 | What it does                                         |
 | --------------------------------------- | ---------------------------------------------------- |
